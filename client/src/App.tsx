@@ -5,8 +5,8 @@ import { Sidebar } from './components/sidebar/Sidebar'
 import { Canvas } from './components/canvas/Canvas'
 import { Inspector } from './components/inspector/Inspector'
 import { Toolbar } from './components/toolbar/Toolbar'
-import { useEditorStore } from './stores/editor-store'
-import type { ComponentType } from './types/component'
+import type { ComponentNode, ComponentType } from './types/component'
+import { useEditorStore, cloneNodeWithNewIds } from './stores/editor-store'
 
 const componentLabels: Record<string, string> = {
   container: 'Container',
@@ -33,6 +33,7 @@ function App() {
   )
 
   const addComponent = useEditorStore((s) => s.addComponent)
+  const addNode = useEditorStore((s) => s.addNode)
   const moveComponent = useEditorStore((s) => s.moveComponent)
   const [activeType, setActiveType] = useState<string | null>(null)
 
@@ -46,7 +47,7 @@ function App() {
     const { active, over } = event
     if (!over) return
 
-    const activeData = active.data.current as { type: ComponentType; source: string; nodeId?: string } | undefined
+    const activeData = active.data.current as { type: ComponentType; source: string; nodeId?: string; presetNode?: ComponentNode } | undefined
     const overData = over.data.current as { action?: string; nodeId?: string | null; parentId?: string | null } | undefined
 
     if (!activeData || !overData) return
@@ -55,7 +56,18 @@ function App() {
     const nodeId = overData.nodeId ?? null
     const parentId = overData.parentId ?? null
 
-    if (activeData.source === 'sidebar') {
+    if (activeData.source === 'library' && activeData.presetNode) {
+      const clone = cloneNodeWithNewIds(activeData.presetNode)
+      if (action === 'inside') {
+        addNode(clone, nodeId ?? undefined)
+      } else if (action === 'after') {
+        addNode(clone, parentId ?? undefined, nodeId ?? undefined)
+      } else if (action === 'before') {
+        addNode(clone, parentId ?? undefined, undefined, nodeId ?? undefined)
+      } else {
+        addNode(clone)
+      }
+    } else if (activeData.source === 'sidebar') {
       if (action === 'inside') {
         addComponent(activeData.type, nodeId ?? undefined)
       } else if (action === 'after') {

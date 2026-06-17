@@ -47,6 +47,19 @@ export function ContextMenu({ x, y, nodeId, onClose }: ContextMenuProps) {
         Duplicate
       </button>
       <button
+        onClick={() => {
+          selectNode(nodeId)
+          const name = prompt('Preset name:')
+          if (name?.trim()) {
+            useEditorStore.getState().savePreset(name.trim(), nodeId)
+          }
+          onClose()
+        }}
+        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+      >
+        Save as Preset
+      </button>
+      <button
         onClick={() => { selectNode(nodeId); removeComponent(nodeId); onClose() }}
         className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
       >

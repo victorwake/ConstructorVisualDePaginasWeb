@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { v4 as uuid } from 'uuid'
-import type { ComponentNode, ComponentType, Breakpoint } from '../types/component'
+import type { ComponentNode, ComponentType, Breakpoint, Preset } from '../types/component'
 
 const MAX_HISTORY = 50
 
@@ -22,6 +22,10 @@ export interface EditorState {
   setActiveBreakpoint: (breakpoint: Breakpoint) => void
   undo: () => void
   redo: () => void
+  presets: Preset[]
+  savePreset: (name: string, nodeId: string) => void
+  deletePreset: (id: string) => void
+  addNode: (node: ComponentNode, parentId?: string, afterId?: string, beforeId?: string) => void
 }
 
 function cloneTree(tree: ComponentNode[]): ComponentNode[] {
@@ -141,12 +145,32 @@ const allowedParents: Record<ComponentType, boolean> = {
   video: false,
 }
 
+const PRESETS_KEY = 'builder-presets'
+
+function loadPresets(): Preset[] {
+  try {
+    const raw = localStorage.getItem(PRESETS_KEY)
+    return raw ? JSON.parse(raw) : []
+  } catch {
+    return []
+  }
+}
+
+function savePresetsToStorage(presets: Preset[]) {
+  localStorage.setItem(PRESETS_KEY, JSON.stringify(presets))
+}
+
+export function cloneNodeWithNewIds(node: ComponentNode): ComponentNode {
+  return { ...node, id: uuid(), children: node.children.map(cloneNodeWithNewIds) }
+}
+
 export const useEditorStore = create<EditorState>((set) => ({
   tree: sampleTree,
   selectedId: null,
   activeBreakpoint: 'desktop',
   past: [],
   future: [],
+  presets: loadPresets(),
 
   selectNode: (id) => set({ selectedId: id }),
 
@@ -267,6 +291,42 @@ export const useEditorStore = create<EditorState>((set) => ({
     }),
 
   setActiveBreakpoint: (breakpoint) => set({ activeBreakpoint: breakpoint }),
+
+  savePreset: (name, nodeId) =>
+    set((state) => {
+      const find = (nodes: ComponentNode[]): ComponentNode | undefined => {
+        for (const n of nodes) {
+          if (n.id === nodeId) return n
+          const f = find(n.children)
+          if (f) return f
+        }
+        return undefined
+      }
+      const original = find(state.tree)
+      if (!original) return state
+      const cloned: Preset = {
+        id: uuid(),
+        name,
+        node: cloneNodeWithNewIds(original),
+      }
+      const presets = [...state.presets, cloned]
+      savePresetsToStorage(presets)
+      return { presets }
+    }),
+
+  deletePreset: (id) =>
+    set((state) => {
+      const presets = state.presets.filter((p) => p.id !== id)
+      savePresetsToStorage(presets)
+      return { presets }
+    }),
+
+  addNode: (node, parentId, afterId, beforeId) =>
+    set((state) => ({
+      past: [...state.past.slice(-(MAX_HISTORY - 1)), cloneTree(state.tree)],
+      future: [],
+      tree: insertInParent(state.tree, parentId || null, node, afterId ? { afterId } : beforeId ? { beforeId } : undefined),
+    })),
 
   undo: () =>
     set((state) => {

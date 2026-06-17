@@ -17,3 +17,9 @@ export interface ComponentNode {
   styles: Record<Breakpoint, Record<string, string>>
   children: ComponentNode[]
 }
+
+export interface Preset {
+  id: string
+  name: string
+  node: ComponentNode
+}
