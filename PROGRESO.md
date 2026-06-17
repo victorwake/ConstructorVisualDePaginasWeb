@@ -8,7 +8,7 @@
 
 | Fase | Estado | Inicio | Fin | Notas |
 |------|--------|--------|-----|-------|
-| 0 — Setup | ❌ Pendiente | — | — | |
+| 0 — Setup | ✅ Completada | 16/06/2026 | 16/06/2026 | Vite+React+TS, Tailwind, Zustand, dnd-kit, Express, Prisma, ESLint, Prettier |
 | 1 — Árbol + Canvas | ❌ Pendiente | — | — | |
 | 2 — Drag & Drop | ❌ Pendiente | — | — | |
 | 3 — Inspector | ❌ Pendiente | — | — | |
@@ -27,12 +27,12 @@
 
 | Fecha | Fase | Tarea | Descripción |
 |-------|------|-------|-------------|
-| — | — | — | — |
+| 16/06/2026 | 0 | 0.1 a 0.7 | Setup completo: Vite, React, TS, Tailwind, dnd-kit, Zustand, Express, Prisma, ESLint, Prettier |
 
 ---
 
 ## Próximos pasos
 
-1. Completar Fase 0 (setup del proyecto)
-2. Completar Fase 1 (árbol + canvas)
-3. Completar Fase 2 (drag & drop)
+1. Completar Fase 1 — Árbol de componentes + Canvas renderizado
+2. Completar Fase 2 — Drag & Drop
+3. Completar Fase 3 — Inspector de propiedades
