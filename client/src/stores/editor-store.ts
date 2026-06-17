@@ -8,7 +8,9 @@ export interface EditorState {
   activeBreakpoint: Breakpoint
   selectNode: (id: string | null) => void
   setTree: (tree: ComponentNode[]) => void
-  addComponent: (type: ComponentType, parentId?: string) => void
+  addComponent: (type: ComponentType, parentId?: string, afterId?: string) => void
+  moveComponent: (id: string, newParentId?: string, afterId?: string) => void
+  removeComponent: (id: string) => void
   updateNodeProps: (id: string, props: Record<string, unknown>) => void
   updateNodeStyles: (id: string, styles: Record<string, string>) => void
 }
@@ -88,13 +90,33 @@ const sampleTree: ComponentNode[] = [
   },
 ]
 
-function addChild(tree: ComponentNode[], parentId: string, child: ComponentNode): ComponentNode[] {
-  return tree.map((node) => {
-    if (node.id === parentId) {
-      return { ...node, children: [...node.children, child] }
-    }
-    return { ...node, children: addChild(node.children, parentId, child) }
+function insertInParent(tree: ComponentNode[], parentId: string | null, node: ComponentNode, afterId?: string): ComponentNode[] {
+  if (parentId === null) {
+    if (afterId) return insertAfterInList(tree, afterId, node)
+    return [...tree, node]
+  }
+  return tree.map((n) => {
+    if (n.id !== parentId) return { ...n, children: insertInParent(n.children, parentId, node, afterId) }
+    if (afterId) return { ...n, children: insertAfterInList(n.children, afterId, node) }
+    return { ...n, children: [...n.children, node] }
   })
+}
+
+function insertAfterInList(list: ComponentNode[], afterId: string, node: ComponentNode): ComponentNode[] {
+  const idx = list.findIndex((n) => n.id === afterId)
+  if (idx === -1) return [...list, node]
+  return [...list.slice(0, idx + 1), node, ...list.slice(idx + 1)]
+}
+
+const allowedParents: Record<ComponentType, boolean> = {
+  container: true,
+  form: true,
+  heading: false,
+  text: false,
+  button: false,
+  image: false,
+  input: false,
+  video: false,
 }
 
 export const useEditorStore = create<EditorState>((set) => ({
@@ -106,11 +128,40 @@ export const useEditorStore = create<EditorState>((set) => ({
 
   setTree: (tree) => set({ tree }),
 
-  addComponent: (type, parentId) =>
+  addComponent: (type, parentId, afterId) =>
     set((state) => {
       const node = createNode(type)
-      if (!parentId) return { tree: [...state.tree, node] }
-      return { tree: addChild(state.tree, parentId, node) }
+      return { tree: insertInParent(state.tree, parentId || null, node, afterId) }
+    }),
+
+  moveComponent: (id, newParentId, afterId) =>
+    set((state) => {
+      const findAndRemove = (nodes: ComponentNode[]): { result: ComponentNode[]; removed: ComponentNode | null } => {
+        for (let i = 0; i < nodes.length; i++) {
+          if (nodes[i].id === id) {
+            const removed = nodes[i]
+            const result = [...nodes.slice(0, i), ...nodes.slice(i + 1)]
+            return { result, removed }
+          }
+          const { result, removed } = findAndRemove(nodes[i].children)
+          if (removed) {
+            return { result: [...nodes.slice(0, i), { ...nodes[i], children: result }, ...nodes.slice(i + 1)], removed }
+          }
+        }
+        return { result: nodes, removed: null }
+      }
+
+      const { result: treeAfterRemove, removed } = findAndRemove(state.tree)
+      if (!removed) return state
+
+      return { tree: insertInParent(treeAfterRemove, newParentId || null, removed, afterId) }
+    }),
+
+  removeComponent: (id) =>
+    set((state) => {
+      const strip = (nodes: ComponentNode[]): ComponentNode[] =>
+        nodes.filter((n) => n.id !== id).map((n) => ({ ...n, children: strip(n.children) }))
+      return { tree: strip(state.tree), selectedId: state.selectedId === id ? null : state.selectedId }
     }),
 
   updateNodeProps: (id, props) =>
@@ -131,3 +182,7 @@ export const useEditorStore = create<EditorState>((set) => ({
       return { tree: updateTree(state.tree) }
     }),
 }))
+
+export function isContainer(type: ComponentType): boolean {
+  return allowedParents[type]
+}

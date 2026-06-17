@@ -1,8 +1,10 @@
+import { useDraggable, useDroppable } from '@dnd-kit/core'
 import type { ComponentNode } from '../../types/component'
-import { useEditorStore } from '../../stores/editor-store'
+import { useEditorStore, isContainer } from '../../stores/editor-store'
 
 interface ComponentRendererProps {
   node: ComponentNode
+  parentId?: string | null
 }
 
 function renderLabel(node: ComponentNode): string {
@@ -18,17 +20,43 @@ function renderLabel(node: ComponentNode): string {
   }
 }
 
-export function ComponentRenderer({ node }: ComponentRendererProps) {
+export function ComponentRenderer({ node, parentId = null }: ComponentRendererProps) {
   const activeBreakpoint = useEditorStore((s) => s.activeBreakpoint)
   const selectedId = useEditorStore((s) => s.selectedId)
   const selectNode = useEditorStore((s) => s.selectNode)
 
   const isSelected = selectedId === node.id
   const styles = node.styles[activeBreakpoint] ?? {}
+  const acceptsChildren = isContainer(node.type)
+
+  const draggableId = `component-${node.id}`
+  const droppableId = `droppable-${node.id}`
+
+  const { attributes, listeners, setNodeRef: setDragRef, isDragging } = useDraggable({
+    id: draggableId,
+    data: { type: node.type, nodeId: node.id, source: 'canvas' as const },
+  })
+
+  const { setNodeRef: setDropRef, isOver } = useDroppable({
+    id: droppableId,
+    data: { acceptsChildren, nodeId: node.id, parentId },
+    disabled: isDragging,
+  })
+
+  const setRef = (el: HTMLDivElement | null) => {
+    setDragRef(el)
+    setDropRef(el)
+  }
+
+  const dragOverClass = isOver && acceptsChildren ? 'outline-2 outline-blue-500 outline-dashed' : ''
+  const dragActiveClass = isDragging ? 'opacity-40' : ''
 
   return (
     <div
-      className={`relative group ${isSelected ? 'ring-2 ring-blue-500 ring-inset' : 'hover:ring-1 hover:ring-blue-300 hover:ring-inset'}`}
+      ref={setRef}
+      {...listeners}
+      {...attributes}
+      className={`relative group ${isSelected ? 'ring-2 ring-blue-500 ring-inset' : 'hover:ring-1 hover:ring-blue-300 hover:ring-inset'} ${dragOverClass} ${dragActiveClass}`}
       onClick={(e) => {
         e.stopPropagation()
         selectNode(node.id)
@@ -88,7 +116,7 @@ function ContainerRenderer({ node, styles }: { node: ComponentNode; styles: Reco
   return (
     <div style={styles as React.CSSProperties} className={String(node.props.className || '')}>
       {node.children.map((child) => (
-        <ComponentRenderer key={child.id} node={child} />
+        <ComponentRenderer key={child.id} node={child} parentId={node.id} />
       ))}
     </div>
   )
@@ -125,7 +153,7 @@ function FormRenderer({ node, styles }: { node: ComponentNode; styles: Record<st
   return (
     <form style={styles as React.CSSProperties} className={String(node.props.className || '')}>
       {node.children.map((child) => (
-        <ComponentRenderer key={child.id} node={child} />
+        <ComponentRenderer key={child.id} node={child} parentId={node.id} />
       ))}
     </form>
   )
