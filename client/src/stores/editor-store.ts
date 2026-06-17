@@ -17,6 +17,7 @@ export interface EditorState {
   removeComponent: (id: string) => void
   updateNodeProps: (id: string, props: Record<string, unknown>) => void
   updateNodeStyles: (id: string, styles: Record<string, string>) => void
+  setActiveBreakpoint: (breakpoint: Breakpoint) => void
   undo: () => void
   redo: () => void
 }
@@ -216,6 +217,8 @@ export const useEditorStore = create<EditorState>((set) => ({
         tree: updateTree(state.tree),
       }
     }),
+
+  setActiveBreakpoint: (breakpoint) => set({ activeBreakpoint: breakpoint }),
 
   undo: () =>
     set((state) => {

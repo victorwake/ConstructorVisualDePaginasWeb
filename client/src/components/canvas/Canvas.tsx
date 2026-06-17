@@ -1,15 +1,23 @@
 import { useDroppable } from '@dnd-kit/core'
 import { useEditorStore } from '../../stores/editor-store'
 import { ComponentRenderer } from '../renderer/ComponentRenderer'
+import type { Breakpoint } from '../../types/component'
+
+const viewportWidths: Record<Breakpoint, string> = {
+  desktop: '1024px',
+  tablet: '768px',
+  mobile: '375px',
+}
 
 function CanvasContent() {
   const tree = useEditorStore((s) => s.tree)
   const selectNode = useEditorStore((s) => s.selectNode)
+  const activeBreakpoint = useEditorStore((s) => s.activeBreakpoint)
 
   return (
     <div
-      className="min-h-full bg-white shadow-lg rounded-lg mx-auto"
-      style={{ maxWidth: '1024px' }}
+      className="min-h-full bg-white shadow-lg rounded-lg mx-auto transition-all duration-200"
+      style={{ maxWidth: viewportWidths[activeBreakpoint] }}
       onClick={() => selectNode(null)}
     >
       {tree.map((node) => (
