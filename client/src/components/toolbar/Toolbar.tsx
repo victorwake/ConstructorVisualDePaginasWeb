@@ -1,4 +1,6 @@
+import { useState } from 'react'
 import { useEditorStore } from '../../stores/editor-store'
+import { ExportModal } from '../ui/ExportModal'
 import type { Breakpoint } from '../../types/component'
 
 const breakpoints: { key: Breakpoint; label: string; icon: string }[] = [
@@ -14,6 +16,7 @@ const breakpointWidths: Record<Breakpoint, string> = {
 }
 
 export function Toolbar() {
+  const [showExport, setShowExport] = useState(false)
   const undo = useEditorStore((s) => s.undo)
   const redo = useEditorStore((s) => s.redo)
   const past = useEditorStore((s) => s.past)
@@ -25,6 +28,7 @@ export function Toolbar() {
 
   return (
     <div className="flex items-center gap-1 px-3 py-1.5 bg-white border-b border-gray-200">
+      {showExport && <ExportModal onClose={() => setShowExport(false)} />}
       <button
         onClick={undo}
         disabled={past.length === 0}
@@ -58,6 +62,14 @@ export function Toolbar() {
         </button>
       ))}
       <span className="mx-2 w-px h-5 bg-gray-200" />
+      <button
+        onClick={() => setShowExport(true)}
+        disabled={tree.length === 0}
+        className="px-2 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+        title="Export HTML/CSS"
+      >
+        ↧ Export
+      </button>
       <button
         onClick={() => { if (confirm('Clear the entire canvas?')) clearCanvas() }}
         disabled={tree.length === 0}
