@@ -20,6 +20,27 @@ function renderLabel(node: ComponentNode): string {
   }
 }
 
+function DropIndicator({ id, action, nodeId, parentId, children }: { id: string; action: 'before' | 'after' | 'inside'; nodeId: string; parentId: string | null; children: React.ReactNode }) {
+  const { setNodeRef, isOver } = useDroppable({
+    id,
+    data: { action, nodeId, parentId },
+  })
+
+  const overClass = isOver
+    ? action === 'inside'
+      ? 'outline-2 outline-blue-500 outline-dashed'
+      : action === 'before'
+        ? 'border-t-2 border-blue-500'
+        : 'border-b-2 border-blue-500'
+    : ''
+
+  return (
+    <div ref={setNodeRef} className={overClass}>
+      {children}
+    </div>
+  )
+}
+
 export function ComponentRenderer({ node, parentId = null }: ComponentRendererProps) {
   const activeBreakpoint = useEditorStore((s) => s.activeBreakpoint)
   const selectedId = useEditorStore((s) => s.selectedId)
@@ -30,38 +51,16 @@ export function ComponentRenderer({ node, parentId = null }: ComponentRendererPr
   const acceptsChildren = isContainer(node.type)
 
   const draggableId = `component-${node.id}`
-  const droppableId = `droppable-${node.id}`
 
   const { attributes, listeners, setNodeRef: setDragRef, isDragging } = useDraggable({
     id: draggableId,
     data: { type: node.type, nodeId: node.id, source: 'canvas' as const },
   })
 
-  const { setNodeRef: setDropRef, isOver } = useDroppable({
-    id: droppableId,
-    data: { acceptsChildren, nodeId: node.id, parentId },
-    disabled: isDragging,
-  })
-
-  const setRef = (el: HTMLDivElement | null) => {
-    setDragRef(el)
-    setDropRef(el)
-  }
-
-  const dragOverClass = isOver && acceptsChildren ? 'outline-2 outline-blue-500 outline-dashed' : ''
   const dragActiveClass = isDragging ? 'opacity-40' : ''
 
-  return (
-    <div
-      ref={setRef}
-      {...listeners}
-      {...attributes}
-      className={`relative group ${isSelected ? 'ring-2 ring-blue-500 ring-inset' : 'hover:ring-1 hover:ring-blue-300 hover:ring-inset'} ${dragOverClass} ${dragActiveClass}`}
-      onClick={(e) => {
-        e.stopPropagation()
-        selectNode(node.id)
-      }}
-    >
+  const body = (
+    <>
       <span className="absolute -top-5 left-0 text-[10px] px-1 bg-blue-500 text-white rounded-t opacity-0 group-hover:opacity-100 transition-opacity select-none pointer-events-none z-10">
         {renderLabel(node)}
       </span>
@@ -89,6 +88,42 @@ export function ComponentRenderer({ node, parentId = null }: ComponentRendererPr
       {node.type === 'video' && (
         <VideoRenderer node={node} styles={styles} />
       )}
+    </>
+  )
+
+  return (
+    <div
+      className={`relative group ${isSelected ? 'ring-2 ring-blue-500 ring-inset' : 'hover:ring-1 hover:ring-blue-300 hover:ring-inset'} ${dragActiveClass}`}
+      onClick={(e) => {
+        e.stopPropagation()
+        selectNode(node.id)
+      }}
+    >
+      <div ref={setDragRef} {...listeners} {...attributes}>
+        {acceptsChildren ? (
+          <>
+            <DropIndicator id={`before-${node.id}`} action="before" nodeId={node.id} parentId={parentId}>
+              <div className="h-0.5" />
+            </DropIndicator>
+            <DropIndicator id={`inside-${node.id}`} action="inside" nodeId={node.id} parentId={parentId}>
+              {body}
+            </DropIndicator>
+            <DropIndicator id={`after-${node.id}`} action="after" nodeId={node.id} parentId={parentId}>
+              <div className="h-0.5" />
+            </DropIndicator>
+          </>
+        ) : (
+          <>
+            <DropIndicator id={`before-${node.id}`} action="before" nodeId={node.id} parentId={parentId}>
+              <div className="h-0.5" />
+            </DropIndicator>
+            {body}
+            <DropIndicator id={`after-${node.id}`} action="after" nodeId={node.id} parentId={parentId}>
+              <div className="h-0.5" />
+            </DropIndicator>
+          </>
+        )}
+      </div>
     </div>
   )
 }
@@ -164,7 +199,7 @@ function InputRenderer({ node, styles }: { node: ComponentNode; styles: Record<s
     <input
       placeholder={(node.props.placeholder as string) || ''}
       style={styles as React.CSSProperties}
-      className={`w-full ${String(node.props.className || '')}`}
+      className={String(node.props.className || '')}
     />
   )
 }

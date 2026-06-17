@@ -12,8 +12,8 @@ export interface EditorState {
   future: ComponentNode[][]
   selectNode: (id: string | null) => void
   setTree: (tree: ComponentNode[]) => void
-  addComponent: (type: ComponentType, parentId?: string, afterId?: string) => void
-  moveComponent: (id: string, newParentId?: string, afterId?: string) => void
+  addComponent: (type: ComponentType, parentId?: string, afterId?: string, beforeId?: string) => void
+  moveComponent: (id: string, newParentId?: string, afterId?: string, beforeId?: string) => void
   removeComponent: (id: string) => void
   updateNodeProps: (id: string, props: Record<string, unknown>) => void
   updateNodeStyles: (id: string, styles: Record<string, string>) => void
@@ -101,22 +101,31 @@ const sampleTree: ComponentNode[] = [
   },
 ]
 
-function insertInParent(tree: ComponentNode[], parentId: string | null, node: ComponentNode, afterId?: string): ComponentNode[] {
+type InsertPosition = { afterId?: string } | { beforeId?: string }
+
+function insertInParent(tree: ComponentNode[], parentId: string | null, node: ComponentNode, position?: InsertPosition): ComponentNode[] {
   if (parentId === null) {
-    if (afterId) return insertAfterInList(tree, afterId, node)
-    return [...tree, node]
+    return insertInList(tree, node, position)
   }
   return tree.map((n) => {
-    if (n.id !== parentId) return { ...n, children: insertInParent(n.children, parentId, node, afterId) }
-    if (afterId) return { ...n, children: insertAfterInList(n.children, afterId, node) }
-    return { ...n, children: [...n.children, node] }
+    if (n.id !== parentId) return { ...n, children: insertInParent(n.children, parentId, node, position) }
+    return { ...n, children: insertInList(n.children, node, position) }
   })
 }
 
-function insertAfterInList(list: ComponentNode[], afterId: string, node: ComponentNode): ComponentNode[] {
-  const idx = list.findIndex((n) => n.id === afterId)
-  if (idx === -1) return [...list, node]
-  return [...list.slice(0, idx + 1), node, ...list.slice(idx + 1)]
+function insertInList(list: ComponentNode[], node: ComponentNode, position?: InsertPosition): ComponentNode[] {
+  if (!position) return [...list, node]
+  if ('afterId' in position) {
+    const idx = list.findIndex((n) => n.id === position.afterId)
+    if (idx === -1) return [...list, node]
+    return [...list.slice(0, idx + 1), node, ...list.slice(idx + 1)]
+  }
+  if ('beforeId' in position) {
+    const idx = list.findIndex((n) => n.id === position.beforeId)
+    if (idx === -1) return [...list, node]
+    return [...list.slice(0, idx), node, ...list.slice(idx)]
+  }
+  return [...list, node]
 }
 
 const allowedParents: Record<ComponentType, boolean> = {
@@ -146,14 +155,14 @@ export const useEditorStore = create<EditorState>((set) => ({
       tree,
     })),
 
-  addComponent: (type, parentId, afterId) =>
+  addComponent: (type, parentId, afterId, beforeId) =>
     set((state) => ({
       past: [...state.past.slice(-(MAX_HISTORY - 1)), cloneTree(state.tree)],
       future: [],
-      tree: insertInParent(state.tree, parentId || null, createNode(type), afterId),
+      tree: insertInParent(state.tree, parentId || null, createNode(type), afterId ? { afterId } : beforeId ? { beforeId } : undefined),
     })),
 
-  moveComponent: (id, newParentId, afterId) =>
+  moveComponent: (id, newParentId, afterId, beforeId) =>
     set((state) => {
       const findAndRemove = (nodes: ComponentNode[]): { result: ComponentNode[]; removed: ComponentNode | null } => {
         for (let i = 0; i < nodes.length; i++) {
@@ -176,7 +185,7 @@ export const useEditorStore = create<EditorState>((set) => ({
       return {
         past: [...state.past.slice(-(MAX_HISTORY - 1)), cloneTree(state.tree)],
         future: [],
-        tree: insertInParent(treeAfterRemove, newParentId || null, removed, afterId),
+        tree: insertInParent(treeAfterRemove, newParentId || null, removed, afterId ? { afterId } : beforeId ? { beforeId } : undefined),
       }
     }),
 

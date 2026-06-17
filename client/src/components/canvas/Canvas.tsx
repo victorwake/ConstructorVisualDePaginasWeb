@@ -35,7 +35,7 @@ function CanvasContent() {
 export function Canvas() {
   const { setNodeRef, isOver } = useDroppable({
     id: 'canvas-root',
-    data: { acceptsChildren: true, nodeId: null, parentId: null },
+    data: { action: 'inside', nodeId: null, parentId: null },
   })
 
   return (

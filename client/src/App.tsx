@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, closestCenter } from '@dnd-kit/core'
+import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, pointerWithin } from '@dnd-kit/core'
 import type { DragStartEvent, DragEndEvent } from '@dnd-kit/core'
 import { Sidebar } from './components/sidebar/Sidebar'
 import { Canvas } from './components/canvas/Canvas'
@@ -47,27 +47,31 @@ function App() {
     if (!over) return
 
     const activeData = active.data.current as { type: ComponentType; source: string; nodeId?: string } | undefined
-    const overData = over.data.current as { acceptsChildren?: boolean; nodeId?: string | null; parentId?: string | null } | undefined
+    const overData = over.data.current as { action?: string; nodeId?: string | null; parentId?: string | null } | undefined
 
-    if (!activeData) return
+    if (!activeData || !overData) return
 
-    const overId = overData?.nodeId ?? null
-    const accepts = overData?.acceptsChildren ?? false
-    const overParentId = overData?.parentId ?? null
+    const action = overData.action ?? 'inside'
+    const nodeId = overData.nodeId ?? null
+    const parentId = overData.parentId ?? null
 
     if (activeData.source === 'sidebar') {
-      if (accepts) {
-        addComponent(activeData.type, overId ?? undefined)
-      } else if (overId) {
-        addComponent(activeData.type, overParentId ?? undefined, overId)
+      if (action === 'inside') {
+        addComponent(activeData.type, nodeId ?? undefined)
+      } else if (action === 'after') {
+        addComponent(activeData.type, parentId ?? undefined, nodeId ?? undefined)
+      } else if (action === 'before') {
+        addComponent(activeData.type, parentId ?? undefined, undefined, nodeId ?? undefined)
       } else {
         addComponent(activeData.type)
       }
-    } else if (activeData.source === 'canvas' && activeData.nodeId && activeData.nodeId !== overId) {
-      if (accepts) {
-        moveComponent(activeData.nodeId, overId ?? undefined)
-      } else if (overId) {
-        moveComponent(activeData.nodeId, overParentId ?? undefined, overId)
+    } else if (activeData.source === 'canvas' && activeData.nodeId && activeData.nodeId !== nodeId) {
+      if (action === 'inside') {
+        moveComponent(activeData.nodeId, nodeId ?? undefined)
+      } else if (action === 'after') {
+        moveComponent(activeData.nodeId, parentId ?? undefined, nodeId ?? undefined)
+      } else if (action === 'before') {
+        moveComponent(activeData.nodeId, parentId ?? undefined, undefined, nodeId ?? undefined)
       } else {
         moveComponent(activeData.nodeId)
       }
@@ -94,7 +98,7 @@ function App() {
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={closestCenter}
+      collisionDetection={pointerWithin}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
