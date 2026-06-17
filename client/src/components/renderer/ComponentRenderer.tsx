@@ -1,6 +1,8 @@
+import { useState, useCallback } from 'react'
 import { useDraggable, useDroppable } from '@dnd-kit/core'
 import type { ComponentNode } from '../../types/component'
 import { useEditorStore, isContainer } from '../../stores/editor-store'
+import { ContextMenu } from '../ui/ContextMenu'
 
 interface ComponentRendererProps {
   node: ComponentNode
@@ -45,6 +47,15 @@ export function ComponentRenderer({ node, parentId = null }: ComponentRendererPr
   const activeBreakpoint = useEditorStore((s) => s.activeBreakpoint)
   const selectedId = useEditorStore((s) => s.selectedId)
   const selectNode = useEditorStore((s) => s.selectNode)
+
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null)
+
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    selectNode(node.id)
+    setContextMenu({ x: e.clientX, y: e.clientY })
+  }, [node.id, selectNode])
 
   const isSelected = selectedId === node.id
   const styles = node.styles[activeBreakpoint] ?? {}
@@ -100,7 +111,16 @@ export function ComponentRenderer({ node, parentId = null }: ComponentRendererPr
         e.stopPropagation()
         selectNode(node.id)
       }}
+      onContextMenu={handleContextMenu}
     >
+      {contextMenu && (
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          nodeId={node.id}
+          onClose={() => setContextMenu(null)}
+        />
+      )}
       <div ref={setDragRef} {...listeners} {...attributes}>
         {acceptsChildren ? (
           <>

@@ -20,6 +20,8 @@ export function Toolbar() {
   const future = useEditorStore((s) => s.future)
   const activeBreakpoint = useEditorStore((s) => s.activeBreakpoint)
   const setActiveBreakpoint = useEditorStore((s) => s.setActiveBreakpoint)
+  const clearCanvas = useEditorStore((s) => s.clearCanvas)
+  const tree = useEditorStore((s) => s.tree)
 
   return (
     <div className="flex items-center gap-1 px-3 py-1.5 bg-white border-b border-gray-200">
@@ -55,6 +57,15 @@ export function Toolbar() {
           <span>{bp.label}</span>
         </button>
       ))}
+      <span className="mx-2 w-px h-5 bg-gray-200" />
+      <button
+        onClick={() => { if (confirm('Clear the entire canvas?')) clearCanvas() }}
+        disabled={tree.length === 0}
+        className="px-2 py-1 text-sm text-red-600 hover:bg-red-50 rounded disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+        title="Clear canvas"
+      >
+        ✕ Clear
+      </button>
     </div>
   )
 }

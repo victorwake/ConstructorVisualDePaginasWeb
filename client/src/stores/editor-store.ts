@@ -15,6 +15,8 @@ export interface EditorState {
   addComponent: (type: ComponentType, parentId?: string, afterId?: string, beforeId?: string) => void
   moveComponent: (id: string, newParentId?: string, afterId?: string, beforeId?: string) => void
   removeComponent: (id: string) => void
+  duplicateComponent: (id: string) => void
+  clearCanvas: () => void
   updateNodeProps: (id: string, props: Record<string, unknown>) => void
   updateNodeStyles: (id: string, styles: Record<string, string>) => void
   setActiveBreakpoint: (breakpoint: Breakpoint) => void
@@ -200,6 +202,43 @@ export const useEditorStore = create<EditorState>((set) => ({
         selectedId: state.selectedId === id ? null : state.selectedId,
       }
     }),
+
+  duplicateComponent: (id) =>
+    set((state) => {
+      const cloneWithNewIds = (node: ComponentNode): ComponentNode => ({
+        ...node,
+        id: uuid(),
+        children: node.children.map(cloneWithNewIds),
+      })
+
+      const findParentAndInsert = (nodes: ComponentNode[], targetId: string): ComponentNode[] => {
+        for (let i = 0; i < nodes.length; i++) {
+          if (nodes[i].id === targetId) {
+            const clone = cloneWithNewIds(nodes[i])
+            return [...nodes.slice(0, i + 1), clone, ...nodes.slice(i + 1)]
+          }
+          const children = findParentAndInsert(nodes[i].children, targetId)
+          if (children !== nodes[i].children) {
+            return nodes.map((n) => (n.id === nodes[i].id ? { ...n, children } : n))
+          }
+        }
+        return nodes
+      }
+
+      return {
+        past: [...state.past.slice(-(MAX_HISTORY - 1)), cloneTree(state.tree)],
+        future: [],
+        tree: findParentAndInsert(state.tree, id),
+      }
+    }),
+
+  clearCanvas: () =>
+    set((state) => ({
+      past: [...state.past.slice(-(MAX_HISTORY - 1)), cloneTree(state.tree)],
+      future: [],
+      tree: [],
+      selectedId: null,
+    })),
 
   updateNodeProps: (id, props) =>
     set((state) => {

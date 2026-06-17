@@ -78,6 +78,9 @@ function App() {
     }
   }
 
+  const selectedId = useEditorStore((s) => s.selectedId)
+  const removeComponent = useEditorStore((s) => s.removeComponent)
+  const duplicateComponent = useEditorStore((s) => s.duplicateComponent)
   const undo = useEditorStore((s) => s.undo)
   const redo = useEditorStore((s) => s.redo)
 
@@ -89,11 +92,17 @@ function App() {
       } else if (e.ctrlKey && e.key === 'z') {
         e.preventDefault()
         undo()
+      } else if ((e.key === 'Delete' || e.key === 'Backspace') && selectedId) {
+        e.preventDefault()
+        removeComponent(selectedId)
+      } else if (e.ctrlKey && e.key === 'd' && selectedId) {
+        e.preventDefault()
+        duplicateComponent(selectedId)
       }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [undo, redo])
+  }, [undo, redo, selectedId, removeComponent, duplicateComponent])
 
   return (
     <DndContext
