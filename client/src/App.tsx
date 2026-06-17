@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, closestCenter } from '@dnd-kit/core'
 import type { DragStartEvent, DragEndEvent } from '@dnd-kit/core'
 import { Sidebar } from './components/sidebar/Sidebar'
 import { Canvas } from './components/canvas/Canvas'
 import { Inspector } from './components/inspector/Inspector'
+import { Toolbar } from './components/toolbar/Toolbar'
 import { useEditorStore } from './stores/editor-store'
 import type { ComponentType } from './types/component'
 
@@ -73,6 +74,23 @@ function App() {
     }
   }
 
+  const undo = useEditorStore((s) => s.undo)
+  const redo = useEditorStore((s) => s.redo)
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.ctrlKey && e.shiftKey && e.key === 'z') {
+        e.preventDefault()
+        redo()
+      } else if (e.ctrlKey && e.key === 'z') {
+        e.preventDefault()
+        undo()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [undo, redo])
+
   return (
     <DndContext
       sensors={sensors}
@@ -80,10 +98,13 @@ function App() {
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="h-screen w-screen flex overflow-hidden bg-gray-50">
-        <Sidebar />
-        <Canvas />
-        <Inspector />
+      <div className="h-screen w-screen flex flex-col overflow-hidden bg-gray-50">
+        <Toolbar />
+        <div className="flex flex-1 overflow-hidden">
+          <Sidebar />
+          <Canvas />
+          <Inspector />
+        </div>
       </div>
       <DragOverlay>
         {activeType ? <DragPreview type={activeType} /> : null}

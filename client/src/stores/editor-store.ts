@@ -2,10 +2,14 @@ import { create } from 'zustand'
 import { v4 as uuid } from 'uuid'
 import type { ComponentNode, ComponentType, Breakpoint } from '../types/component'
 
+const MAX_HISTORY = 50
+
 export interface EditorState {
   tree: ComponentNode[]
   selectedId: string | null
   activeBreakpoint: Breakpoint
+  past: ComponentNode[][]
+  future: ComponentNode[][]
   selectNode: (id: string | null) => void
   setTree: (tree: ComponentNode[]) => void
   addComponent: (type: ComponentType, parentId?: string, afterId?: string) => void
@@ -13,6 +17,12 @@ export interface EditorState {
   removeComponent: (id: string) => void
   updateNodeProps: (id: string, props: Record<string, unknown>) => void
   updateNodeStyles: (id: string, styles: Record<string, string>) => void
+  undo: () => void
+  redo: () => void
+}
+
+function cloneTree(tree: ComponentNode[]): ComponentNode[] {
+  return JSON.parse(JSON.stringify(tree))
 }
 
 function createNode(type: ComponentType): ComponentNode {
@@ -123,16 +133,24 @@ export const useEditorStore = create<EditorState>((set) => ({
   tree: sampleTree,
   selectedId: null,
   activeBreakpoint: 'desktop',
+  past: [],
+  future: [],
 
   selectNode: (id) => set({ selectedId: id }),
 
-  setTree: (tree) => set({ tree }),
+  setTree: (tree) =>
+    set((state) => ({
+      past: [...state.past.slice(-(MAX_HISTORY - 1)), cloneTree(state.tree)],
+      future: [],
+      tree,
+    })),
 
   addComponent: (type, parentId, afterId) =>
-    set((state) => {
-      const node = createNode(type)
-      return { tree: insertInParent(state.tree, parentId || null, node, afterId) }
-    }),
+    set((state) => ({
+      past: [...state.past.slice(-(MAX_HISTORY - 1)), cloneTree(state.tree)],
+      future: [],
+      tree: insertInParent(state.tree, parentId || null, createNode(type), afterId),
+    })),
 
   moveComponent: (id, newParentId, afterId) =>
     set((state) => {
@@ -154,21 +172,34 @@ export const useEditorStore = create<EditorState>((set) => ({
       const { result: treeAfterRemove, removed } = findAndRemove(state.tree)
       if (!removed) return state
 
-      return { tree: insertInParent(treeAfterRemove, newParentId || null, removed, afterId) }
+      return {
+        past: [...state.past.slice(-(MAX_HISTORY - 1)), cloneTree(state.tree)],
+        future: [],
+        tree: insertInParent(treeAfterRemove, newParentId || null, removed, afterId),
+      }
     }),
 
   removeComponent: (id) =>
     set((state) => {
       const strip = (nodes: ComponentNode[]): ComponentNode[] =>
         nodes.filter((n) => n.id !== id).map((n) => ({ ...n, children: strip(n.children) }))
-      return { tree: strip(state.tree), selectedId: state.selectedId === id ? null : state.selectedId }
+      return {
+        past: [...state.past.slice(-(MAX_HISTORY - 1)), cloneTree(state.tree)],
+        future: [],
+        tree: strip(state.tree),
+        selectedId: state.selectedId === id ? null : state.selectedId,
+      }
     }),
 
   updateNodeProps: (id, props) =>
     set((state) => {
       const updateTree = (nodes: ComponentNode[]): ComponentNode[] =>
         nodes.map((n) => (n.id === id ? { ...n, props: { ...n.props, ...props } } : { ...n, children: updateTree(n.children) }))
-      return { tree: updateTree(state.tree) }
+      return {
+        past: [...state.past.slice(-(MAX_HISTORY - 1)), cloneTree(state.tree)],
+        future: [],
+        tree: updateTree(state.tree),
+      }
     }),
 
   updateNodeStyles: (id, styles) =>
@@ -179,7 +210,33 @@ export const useEditorStore = create<EditorState>((set) => ({
             ? { ...n, styles: { ...n.styles, [state.activeBreakpoint]: { ...n.styles[state.activeBreakpoint], ...styles } } }
             : { ...n, children: updateTree(n.children) },
         )
-      return { tree: updateTree(state.tree) }
+      return {
+        past: [...state.past.slice(-(MAX_HISTORY - 1)), cloneTree(state.tree)],
+        future: [],
+        tree: updateTree(state.tree),
+      }
+    }),
+
+  undo: () =>
+    set((state) => {
+      if (state.past.length === 0) return state
+      const previous = state.past[state.past.length - 1]
+      return {
+        tree: previous,
+        past: state.past.slice(0, -1),
+        future: [cloneTree(state.tree), ...state.future],
+      }
+    }),
+
+  redo: () =>
+    set((state) => {
+      if (state.future.length === 0) return state
+      const next = state.future[0]
+      return {
+        tree: next,
+        past: [...state.past, cloneTree(state.tree)],
+        future: state.future.slice(1),
+      }
     }),
 }))
 
