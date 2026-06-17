@@ -79,6 +79,33 @@ router.put("/:id", async (req: AuthRequest, res) => {
   }
 })
 
+router.post("/:id/publish", async (req: AuthRequest, res) => {
+  try {
+    const id = req.params.id as string
+    const existing = await prisma.project.findFirst({
+      where: { id, userId: req.userId },
+    })
+    if (!existing) {
+      res.status(404).json({ error: "Project not found" })
+      return
+    }
+    const { html } = req.body
+    if (!html) {
+      res.status(400).json({ error: "HTML content required" })
+      return
+    }
+    const slug = existing.slug || existing.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') + '-' + existing.id.slice(0, 6)
+    const project = await prisma.project.update({
+      where: { id },
+      data: { published: true, publishedHtml: html, slug },
+    })
+    res.json({ url: `/p/${slug}`, project })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: "Server error" })
+  }
+})
+
 router.delete("/:id", async (req: AuthRequest, res) => {
   try {
     const id = req.params.id as string

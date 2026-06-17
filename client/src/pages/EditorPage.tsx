@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, pointerWithin } from '@dnd-kit/core'
 import type { DragStartEvent, DragEndEvent } from '@dnd-kit/core'
@@ -49,6 +49,8 @@ export function EditorPage() {
   const [activeType, setActiveType] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [loaded, setLoaded] = useState(false)
+  const [publishedUrl, setPublishedUrl] = useState<string | null>(null)
+  const [publishing, setPublishing] = useState(false)
 
   useEffect(() => {
     if (!projectId) return
@@ -107,6 +109,23 @@ export function EditorPage() {
     }
   }
 
+  const handlePublish = useCallback(async () => {
+    if (!projectId) return
+    setPublishing(true)
+    try {
+      const { generateHTMLPage, generateCSS } = await import('../utils/export')
+      const css = generateCSS(tree)
+      const html = generateHTMLPage(tree, css)
+      const { data } = await api.post(`/projects/${projectId}/publish`, { html })
+      setPublishedUrl(`${window.location.origin}${data.url}`)
+    } catch (e) {
+      console.error(e)
+      alert('Publish failed')
+    } finally {
+      setPublishing(false)
+    }
+  }, [projectId, tree])
+
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if (e.ctrlKey && e.shiftKey && e.key === 'z') { e.preventDefault(); redo() }
@@ -126,7 +145,7 @@ export function EditorPage() {
       onDragEnd={handleDragEnd}
     >
       <div className="h-screen w-screen flex flex-col overflow-hidden bg-gray-50">
-        <Toolbar saving={saving} onBack={() => navigate('/dashboard')} />
+        <Toolbar saving={saving} onBack={() => navigate('/dashboard')} onPublish={handlePublish} publishing={publishing} publishedUrl={publishedUrl} />
         <div className="flex flex-1 overflow-hidden">
           <Sidebar />
           <Canvas />

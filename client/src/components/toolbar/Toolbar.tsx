@@ -18,10 +18,14 @@ const breakpointWidths: Record<Breakpoint, string> = {
 interface ToolbarProps {
   saving?: boolean
   onBack?: () => void
+  onPublish?: () => void
+  publishing?: boolean
+  publishedUrl?: string | null
 }
 
-export function Toolbar({ saving, onBack }: ToolbarProps) {
+export function Toolbar({ saving, onBack, onPublish, publishing, publishedUrl }: ToolbarProps) {
   const [showExport, setShowExport] = useState(false)
+  const [copied, setCopied] = useState(false)
   const undo = useEditorStore((s) => s.undo)
   const redo = useEditorStore((s) => s.redo)
   const past = useEditorStore((s) => s.past)
@@ -85,6 +89,32 @@ export function Toolbar({ saving, onBack }: ToolbarProps) {
       >
         ↧ Export
       </button>
+      {onPublish && (
+        <button
+          onClick={onPublish}
+          disabled={tree.length === 0 || publishing}
+          className="px-2 py-1 text-sm text-green-600 hover:bg-green-50 rounded disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          title="Publish page"
+        >
+          {publishing ? 'Publishing...' : '↑ Publish'}
+        </button>
+      )}
+      {publishedUrl && (
+        <div className="flex items-center gap-1 ml-1">
+          <input
+            readOnly
+            value={publishedUrl}
+            className="w-56 px-2 py-1 text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded"
+            onClick={(e) => e.currentTarget.select()}
+          />
+          <button
+            onClick={() => { navigator.clipboard.writeText(publishedUrl); setCopied(true); setTimeout(() => setCopied(false), 2000) }}
+            className="px-2 py-1 text-xs text-gray-500 hover:bg-gray-100 rounded transition-colors"
+          >
+            {copied ? '✓' : 'Copy'}
+          </button>
+        </div>
+      )}
       <button
         onClick={() => { if (confirm('Clear the entire canvas?')) clearCanvas() }}
         disabled={tree.length === 0}

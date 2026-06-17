@@ -18,12 +18,14 @@ model User {
 }
 
 model Project {
-  id        String   @id @default(uuid())
-  name      String
-  tree      Json
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  published Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String   @id @default(uuid())
+  name          String
+  tree          Json
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  published     Boolean  @default(false)
+  publishedHtml String?
+  slug          String?  @unique
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
