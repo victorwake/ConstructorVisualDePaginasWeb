@@ -3,6 +3,7 @@ import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, closestC
 import type { DragStartEvent, DragEndEvent } from '@dnd-kit/core'
 import { Sidebar } from './components/sidebar/Sidebar'
 import { Canvas } from './components/canvas/Canvas'
+import { Inspector } from './components/inspector/Inspector'
 import { useEditorStore } from './stores/editor-store'
 import type { ComponentType } from './types/component'
 
@@ -82,6 +83,7 @@ function App() {
       <div className="h-screen w-screen flex overflow-hidden bg-gray-50">
         <Sidebar />
         <Canvas />
+        <Inspector />
       </div>
       <DragOverlay>
         {activeType ? <DragPreview type={activeType} /> : null}

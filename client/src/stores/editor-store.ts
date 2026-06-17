@@ -183,6 +183,15 @@ export const useEditorStore = create<EditorState>((set) => ({
     }),
 }))
 
+export function findNode(tree: ComponentNode[], id: string): ComponentNode | undefined {
+  for (const node of tree) {
+    if (node.id === id) return node
+    const found = findNode(node.children, id)
+    if (found) return found
+  }
+  return undefined
+}
+
 export function isContainer(type: ComponentType): boolean {
   return allowedParents[type]
 }
