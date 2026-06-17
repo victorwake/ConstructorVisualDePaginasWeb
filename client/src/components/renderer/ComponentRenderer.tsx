@@ -91,9 +91,11 @@ export function ComponentRenderer({ node, parentId = null }: ComponentRendererPr
     </>
   )
 
+  const displayClass = acceptsChildren ? 'block' : 'inline-block align-top'
+
   return (
     <div
-      className={`relative group ${isSelected ? 'ring-2 ring-blue-500 ring-inset' : 'hover:ring-1 hover:ring-blue-300 hover:ring-inset'} ${dragActiveClass}`}
+      className={`relative group ${displayClass} ${isSelected ? 'ring-2 ring-blue-500 ring-inset' : 'hover:ring-1 hover:ring-blue-300 hover:ring-inset'} ${dragActiveClass}`}
       onClick={(e) => {
         e.stopPropagation()
         selectNode(node.id)

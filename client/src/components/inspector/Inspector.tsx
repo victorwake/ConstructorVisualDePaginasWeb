@@ -34,12 +34,22 @@ function TextInput({ value, onChange, placeholder }: { value: string; onChange: 
 }
 
 function NumberInput({ value, onChange, suffix }: { value: string; onChange: (v: string) => void; suffix?: string }) {
+  function handleChange(raw: string) {
+    if (suffix === 'px' && raw !== '' && /^\d+$/.test(raw)) {
+      onChange(raw + 'px')
+    } else {
+      onChange(raw)
+    }
+  }
+
+  const displayValue = suffix === 'px' && value.endsWith('px') ? value.slice(0, -2) : value
+
   return (
     <div className="flex items-center gap-1">
       <input
         type="text"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
+        value={displayValue}
+        onChange={(e) => handleChange(e.target.value)}
         className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
       />
       {suffix && <span className="text-xs text-gray-400 w-4">{suffix}</span>}
