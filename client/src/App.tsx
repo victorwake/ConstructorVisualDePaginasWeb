@@ -3,6 +3,7 @@ import { LoginPage } from './pages/LoginPage'
 import { RegisterPage } from './pages/RegisterPage'
 import { Dashboard } from './pages/Dashboard'
 import { EditorPage } from './pages/EditorPage'
+import { Marketplace } from './pages/Marketplace'
 import { useAuthStore } from './stores/auth-store'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -24,6 +25,10 @@ function App() {
         <Route
           path="/editor/:id"
           element={<ProtectedRoute><EditorPage /></ProtectedRoute>}
+        />
+        <Route
+          path="/marketplace"
+          element={<ProtectedRoute><Marketplace /></ProtectedRoute>}
         />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>

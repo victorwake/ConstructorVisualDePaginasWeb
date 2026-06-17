@@ -3,6 +3,7 @@ import express from "express"
 import cors from "cors"
 import authRoutes from "./routes/auth.js"
 import projectRoutes from "./routes/projects.js"
+import templateRoutes from "./routes/templates.js"
 import prisma from "./db/client.js"
 
 const app = express()
@@ -17,6 +18,7 @@ app.get("/api/health", (_req, res) => {
 
 app.use("/api/auth", authRoutes)
 app.use("/api/projects", projectRoutes)
+app.use("/api/templates", templateRoutes)
 
 app.get("/p/:slug", async (req, res) => {
   try {

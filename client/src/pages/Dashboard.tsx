@@ -42,6 +42,9 @@ export function Dashboard() {
         <h1 className="text-lg font-semibold text-gray-800">My Projects</h1>
         <div className="flex items-center gap-3">
           <span className="text-sm text-gray-500">{user?.email}</span>
+          <Link to="/marketplace" className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded transition-colors">
+            Marketplace
+          </Link>
           <button
             onClick={createNew}
             className="px-4 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
