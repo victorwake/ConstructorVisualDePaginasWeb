@@ -15,7 +15,12 @@ const breakpointWidths: Record<Breakpoint, string> = {
   mobile: '375px',
 }
 
-export function Toolbar() {
+interface ToolbarProps {
+  saving?: boolean
+  onBack?: () => void
+}
+
+export function Toolbar({ saving, onBack }: ToolbarProps) {
   const [showExport, setShowExport] = useState(false)
   const undo = useEditorStore((s) => s.undo)
   const redo = useEditorStore((s) => s.redo)
@@ -29,6 +34,16 @@ export function Toolbar() {
   return (
     <div className="flex items-center gap-1 px-3 py-1.5 bg-white border-b border-gray-200">
       {showExport && <ExportModal onClose={() => setShowExport(false)} />}
+      {onBack && (
+        <button onClick={onBack} className="px-2 py-1 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors" title="Back to dashboard">
+          ← Back
+        </button>
+      )}
+      {saving !== undefined && (
+        <span className={`text-xs ${saving ? 'text-gray-400' : 'text-green-500'} transition-colors mr-1`}>
+          {saving ? 'Saving...' : 'Saved'}
+        </span>
+      )}
       <button
         onClick={undo}
         disabled={past.length === 0}
